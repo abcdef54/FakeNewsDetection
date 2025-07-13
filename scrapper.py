@@ -1,9 +1,10 @@
 import requests
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 import json
 from bs4 import BeautifulSoup
 import os
 import re
+import time
 
 class Scrappers:
    session = requests.Session()
@@ -12,61 +13,44 @@ class Scrappers:
    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
    "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7"
    })
-   session.verify = False  # Disable SSL verification globally for this session
 
-
+   # Configuration for different sites
    SITE_CONFIG = {
       'vnexpress': {
-         'source': 'vnexpress',
          'paragraph_selector': 'article.fck_detail',
-         'date_published_prop': [('itemprop', 'datePublished')],
-         'date_modified_prop': [('itemprop', 'dateModified')],
-         'author_prop': [('name', 'authorInfo'), ('name', 'author'), ('meta', 'author-name')] # last element is the tag and the value to take
       },
       'tuoitre': {
-         'source': 'tuoitre',
          'paragraph_selector': 'div[itemprop="articleBody"]',
-         'date_published_prop': [('property', 'article:published_time')],
-         'date_modified_prop': [('property', 'article:modified_time')],
-         'author_prop': [('property', 'dable:author')]
       },
       'thanhnien': {
-         'source': 'thanhnien',
          'paragraph_selector': 'div[itemprop="articleBody"]',
-         'date_published_prop': [('property', 'article:published_time')],
-         'date_modified_prop': [('itemprop', 'dateModified')],
-         'author_prop': [('property', 'dable:author')]
       },
       'kenh14': {
-         'source': 'kenh14',
          'paragraph_selector': 'div.detail-content.afcbc-body',
-         'date_published_prop': [('property', 'article:published_time')],
-         'date_modified_prop': [('name', 'hideLastModifiedDate')],
-         'author_prop': [('property', 'article:author')]
       },
       'soha': {
-         'source': 'soha',
          'paragraph_selector': 'div.detail-content.afcbc-body',
-         'date_published_prop': [('property', 'article:published_time')],
-         'date_modified_prop': [('name', 'hidLastModifiedDate')],
-         'author_prop': [('property', 'article:author')]
       },
       'gamek': {
-         'source': 'gamek',
          'paragraph_selector': 'div.rightdetail_content.detailsmallcontent',
-         'date_published_prop': [('property', 'article:published_time')],
-         'date_modified_prop': [('property', 'article:modified_time')],
-         'author_prop': [('name', 'author')]
       },
       'theanh28': {
-         'source': 'theanh28',
          'paragraph_selector': 'div.message-content.js-messageContent article.message-body',
-         'date_published_prop': [('json-ld', 'datePublished')],
-         'date_modified_prop': [('json-ld', 'dateModified')],
-         'author_prop': [('class', 'message--post')],
+         'br_replace': True,
+      },
+      'chinhphu': {
+         'paragraph_selector': 'div.detail-content.afcbc-body',
+      },
+      'vietnamnet': {
+         'paragraph_selector': 'div.maincontent.main-content',
+      },
+      'nld': {
+         'paragraph_selector': 'div[id="gallery-ctt"]',
+      },
+      'dantri': {
+         'paragraph_selector': 'div.singular-content',
       }
    }
-
 
 
    def __init__(self) -> None:
@@ -98,31 +82,84 @@ class Scrappers:
       return default_value
 
    
-   def _extract_paragraphs(self, selector: str) -> str:
+   def _extract_paragraphs(self) -> str:
+      """
+      Extract paragraphs from the HTML content based on the configured selector for the website type.
+      Returns cleaned text from the paragraphs.
+      """
+      config = self.SITE_CONFIG.get(self.type)
+      if not config:
+         raise ValueError(f"Unsupported website type: {self.type}")
+      
+      selector = config['paragraph_selector']
+
       paragraph_tags = self.bs.select_one(selector) # type:ignore
       if not paragraph_tags:
          raise ValueError("No paragraph tags found in the HTML content.")
       
-      if self.type == 'theanh28':
-         br_tags = paragraph_tags.find_all('br')
-         for br in br_tags:
+      if config.get('br_replace'):
+         tags = paragraph_tags.find_all('br')
+         for br in tags:
             br.replace_with('\n')
-         return self._clean_text(paragraph_tags.get_text(strip=True, separator=' ')) if paragraph_tags else 'No paragraphs found' # type:ignore
       else:
-         p_tags = paragraph_tags.find_all('p') 
+         tags = paragraph_tags.find_all('p') 
 
-      if not p_tags:
+      if not tags:
          raise ValueError("No paragraph tags found in the specified selector.")
       
-      return self._clean_text('\n'.join([p.get_text(strip=True, separator=' ') for p in p_tags])) if p_tags else 'No paragraphs found' # type:ignore
+      return self._clean_text('\n'.join([p.get_text(strip=True, separator=' ') for p in tags])) if tags else 'No paragraphs found' # type:ignore
    
 
-   def scrape(self, web_key: str) -> Dict[str, Any]:
-      config: Dict[str, Any] = self.SITE_CONFIG.get(web_key) # type:ignore
-      if not config:
-         raise ValueError(f"Configuration for {web_key} not found in SITE_CONFIG.")
+   def _extract_json_ld(self, *keys, default_value=None) -> Tuple[str, ...]:
+    """
+    Parse all <script type="application/ld+json"> tags and return the first occurrence
+    of one of the requested keys.
+    """
+    scripts = self.bs.find_all('script', type='application/ld+json')
+    results = []
+    
+    for key in keys:
+        found = False
+        for script in scripts:
+            text = script.string or script.get_text()
+            try:
+                data = json.loads(text)
+            except (json.JSONDecodeError, TypeError):
+                continue
 
-      source = config['source']
+            # Normalize to list for unified handling
+            items = data if isinstance(data, list) else [data]
+            for item in items:
+                if key in item:
+                    val = item[key]
+                    # For nested author object or list
+                    if key == "author":
+                        if isinstance(val, dict):
+                            results.append(val.get("name", default_value))
+                        elif isinstance(val, list) and val:
+                            results.append(val[0].get("name", default_value))
+                        else:
+                            results.append(default_value)
+                    else:
+                        results.append(val)
+                    found = True
+                    break
+            if found:
+                break
+        
+        # If key was not found in any script, append None
+        if not found:
+            results.append(default_value)
+    
+    return tuple(results)
+   
+
+   def _scrape(self) -> Dict[str, Any]:
+      """
+      Scrape the HTML content and extract relevant information based on the website type.
+      Returns a dictionary with the extracted data.
+      """
+      source = self.type
       title = self._extract_tag([("property", "og:title")])
       url = self._extract_tag([("property", "og:url")])
       image = self._extract_tag([("property", "og:image")])
@@ -130,29 +167,9 @@ class Scrappers:
       copyright = self._extract_tag([("name", "copyright")])
       language = self._extract_tag([("property", "og:locale"), ("name", "language"), ("itemprop", "inLanguage")], default_value='vi')
 
-      if web_key == 'theanh28':
-         date_published = self._extract_json_ld_data('datePublished')
-      else:
-          date_published = self._extract_tag(config['date_published_prop'])
+      author, date_published, date_modified = self._extract_json_ld('author', 'datePublished', 'dateModified')
 
-      if web_key in ['kenh14', 'soha']:
-         date_modified = self._extract_tag(config['date_modified_prop'], tags=['input'], attr='value')
-      elif web_key == 'theanh28':
-         date_modified = self._extract_json_ld_data('dateModified')
-      else:
-         date_modified = self._extract_tag(config['date_modified_prop'])
-
-      if web_key == 'vnexpress':
-         # special handling for vnexpress because they suck
-         author = self._extract_tag(config['author_prop'], attr='author-name')  or\
-         self._extract_tag(config['author_prop'])
-      elif web_key == 'theanh28':
-         # special handling for theanh28 because they suck
-         author = self._extract_tag(config['author_prop'], tags=['article'], attr='data-author')
-      else:
-         author = self._extract_tag(config['author_prop'])
-
-      paragraphs = self._extract_paragraphs(config['paragraph_selector'])
+      paragraphs = self._extract_paragraphs()
 
       # Update the result dictionary with the extracted data
       self.result.update({
@@ -173,6 +190,12 @@ class Scrappers:
 
 
    def run_and_write(self, urls: List[str], folder: str = "Data/") -> None:
+      """
+      Run the scraper for a list of URLs and write the results to JSON files in the specified folder.
+      Args:
+         urls (List[str]): List of URLs to scrape.
+         folder (str): Folder to save the JSON files.
+      """
       if urls is None or not isinstance(urls, list):
          raise ValueError("URL must be a non-empty list of strings.")
       
@@ -188,6 +211,12 @@ class Scrappers:
 
 
    def WriteJSON(self, Path: str, file_name: str) -> None:
+      """
+      Write the scraped data to a JSON file in the specified path.
+      Args:
+         Path (str): The directory path where the JSON file will be saved.
+         file_name (str): The name of the JSON file (without extension).
+      """
       if not os.path.exists(Path):
          os.makedirs(Path)
       
@@ -196,15 +225,39 @@ class Scrappers:
          json.dump(self.result, f, indent=4, ensure_ascii=False)
          print(f"Data written to {file_path}")
 
-   
+      
    @staticmethod
    def _get(url: str) -> str:
-      res = Scrappers.session.get(url)
-      if res.status_code == 200:
-            res.encoding = 'utf-8'
-            return res.text
-      else:
-            raise Exception(f"Failed to fetch data from {url}, status code: {res.status_code}")
+    # Make initial request
+    res = Scrappers.session.get(url)
+    if res.status_code == 200:
+        res.encoding = 'utf-8'
+        
+        # Check if this is a cookie-setting redirect page
+        if 'document.cookie=' in res.text and 'window.location.reload' in res.text:
+            # Extract and manually set the cookie
+            import re
+            cookie_match = re.search(r'document\.cookie="([^"]+)"', res.text)
+            if cookie_match:
+                cookie_str = cookie_match.group(1)
+                # Parse the cookie (format: "name=value; expires=...; path=/")
+                cookie_parts = cookie_str.split(';')
+                if '=' in cookie_parts[0]:
+                    name, value = cookie_parts[0].split('=', 1)
+                    Scrappers.session.cookies.set(name, value)
+            
+            # Wait a moment and make second request
+            time.sleep(0.5)
+            res = Scrappers.session.get(url)
+            if res.status_code == 200:
+                res.encoding = 'utf-8'
+                return res.text
+            else:
+                raise Exception(f"Failed to fetch data from {url} on second request, status code: {res.status_code}")
+        
+        return res.text
+    else:
+        raise Exception(f"Failed to fetch data from {url}, status code: {res.status_code}")
 
 
    @staticmethod
@@ -227,7 +280,7 @@ class Scrappers:
             return "chinhphu"
       elif "vietnamnet.vn" in url:
             return "vietnamnet"
-      elif "nld.com.vn" in url:
+      elif "laodong.vn" in url:
             return "nld"
       elif "dantri.com.vn" in url:
             return "dantri"
@@ -249,18 +302,7 @@ class Scrappers:
       return "\n".join(cleaned_lines).strip()
    
 
-   def _extract_json_ld_data(self, key: str, default_value: str = None) -> str:
-      script_tag = self.bs.find('script', {'type': 'application/ld+json'})
-      if script_tag:
-         try:
-               json_data = json.loads(script_tag.string.strip())
-               return json_data.get(key, default_value)
-         except (json.JSONDecodeError, AttributeError):
-               return default_value
-      return default_value
-      
-
-   def __call__(self, url: str | List[str], folder: str = None, file_name: str = None) -> Any: # type:ignore
+   def __call__(self, url: str | List[str], folder: str = None) -> Any: # type:ignore
       if not url:
             raise ValueError("URL must be a non-empty string or list of strings.")
       
@@ -268,15 +310,15 @@ class Scrappers:
          if folder is None:
                raise ValueError("Folder must be specified when passing a list of URLs.")
          return self.run_and_write(url, folder)
-         
-      html = self._get(url)
-      self.bs = BeautifulSoup(html, 'lxml')
+      
       self.type = self._determine_type(url)
-
       if self.type == 'theanh28':
          # Disable SSL verification for the session
           self.session.verify = False
       else:
           self.session.verify = True
 
-      return self.scrape(self.type)  # Convert type to lowercase to match SITE_CONFIG keys
+      html = self._get(url)
+      self.bs = BeautifulSoup(html, 'lxml')
+
+      return self._scrape()
