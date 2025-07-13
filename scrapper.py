@@ -12,6 +12,61 @@ class Scrappers:
    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
    "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7"
    })
+   session.verify = False  # Disable SSL verification globally for this session
+
+
+   SITE_CONFIG = {
+      'vnexpress': {
+         'source': 'vnexpress',
+         'paragraph_selector': 'article.fck_detail',
+         'date_published_prop': [('itemprop', 'datePublished')],
+         'date_modified_prop': [('itemprop', 'dateModified')],
+         'author_prop': [('name', 'authorInfo'), ('name', 'author'), ('meta', 'author-name')] # last element is the tag and the value to take
+      },
+      'tuoitre': {
+         'source': 'tuoitre',
+         'paragraph_selector': 'div[itemprop="articleBody"]',
+         'date_published_prop': [('property', 'article:published_time')],
+         'date_modified_prop': [('property', 'article:modified_time')],
+         'author_prop': [('property', 'dable:author')]
+      },
+      'thanhnien': {
+         'source': 'thanhnien',
+         'paragraph_selector': 'div[itemprop="articleBody"]',
+         'date_published_prop': [('property', 'article:published_time')],
+         'date_modified_prop': [('itemprop', 'dateModified')],
+         'author_prop': [('property', 'dable:author')]
+      },
+      'kenh14': {
+         'source': 'kenh14',
+         'paragraph_selector': 'div.detail-content.afcbc-body',
+         'date_published_prop': [('property', 'article:published_time')],
+         'date_modified_prop': [('name', 'hideLastModifiedDate')],
+         'author_prop': [('property', 'article:author')]
+      },
+      'soha': {
+         'source': 'soha',
+         'paragraph_selector': 'div.detail-content.afcbc-body',
+         'date_published_prop': [('property', 'article:published_time')],
+         'date_modified_prop': [('name', 'hidLastModifiedDate')],
+         'author_prop': [('property', 'article:author')]
+      },
+      'gamek': {
+         'source': 'gamek',
+         'paragraph_selector': 'div.rightdetail_content.detailsmallcontent',
+         'date_published_prop': [('property', 'article:published_time')],
+         'date_modified_prop': [('property', 'article:modified_time')],
+         'author_prop': [('name', 'author')]
+      },
+      'theanh28': {
+         'source': 'theanh28',
+         'paragraph_selector': 'div.message-content.js-messageContent article.message-body',
+         'date_published_prop': [('json-ld', 'datePublished')],
+         'date_modified_prop': [('json-ld', 'dateModified')],
+         'author_prop': [('class', 'message--post')],
+      }
+   }
+
 
 
    def __init__(self) -> None:
@@ -19,57 +74,85 @@ class Scrappers:
       self.type: str = ""
       self.result: Dict[str, Any] = {}
 
-   
-   def _extract_tag(self, prop=None, name=None, itemprop=None, tag_name: str = "meta",
-                     default_value=None, attribute: str = 'content') -> str | None:
-      
-      # selector = {'property' : prop, 'name' : name, 'itemprop' : itemprop} if prop or name or itemprop else {}
-      selector = {'property': prop} if prop else {}
-      if name:
-         selector = {'name': name}
-      if itemprop:
-         selector = {'itemprop': itemprop}
-      
-      tag = self.bs.find(tag_name, selector) # type:ignore
-      if not tag:
-         return default_value
-      
-      return tag.get(attribute, default_value) if default_value is not None else tag.get(attribute) # type:ignore
+
+   def _extract_tag(self, sel_key_pairs: List[Tuple[str, str]], tags: List[str] = ["meta"],
+                    default_value=None, attr: str = 'content') -> str | None:
+      """
+      Try multiple tags and selector, key pairs to find the first matching element.
+       
+      Args:
+         tags (List[str]): List of tag names to search for.
+         sel_key_pairs (List[Tuple[str, str]]): List of tuples containing selector and key pairs.
+         default_value (str, optional): Default value to return if no matching element is found.
+         attr (str): The attribute to extract from the found element.
+      """
+
+      if not isinstance(tags, list):
+         tags = [tags]
+
+      for tag in tags:
+         for sel, key, in sel_key_pairs:
+            element = self.bs.find(tag, {sel: key}) # type:ignore
+            if element:
+                  return element.get(attr, default_value) if default_value is not None else element.get(attr) # type:ignore
+      return default_value
+
    
    def _extract_paragraphs(self, selector: str) -> str:
       paragraph_tags = self.bs.select_one(selector) # type:ignore
       if not paragraph_tags:
          raise ValueError("No paragraph tags found in the HTML content.")
       
-      p_tags = paragraph_tags.find_all('p') 
+      if self.type == 'theanh28':
+         br_tags = paragraph_tags.find_all('br')
+         for br in br_tags:
+            br.replace_with('\n')
+         return self._clean_text(paragraph_tags.get_text(strip=True, separator=' ')) if paragraph_tags else 'No paragraphs found' # type:ignore
+      else:
+         p_tags = paragraph_tags.find_all('p') 
+
       if not p_tags:
          raise ValueError("No paragraph tags found in the specified selector.")
       
       return self._clean_text('\n'.join([p.get_text(strip=True, separator=' ') for p in p_tags])) if p_tags else 'No paragraphs found' # type:ignore
+   
 
+   def scrape(self, web_key: str) -> Dict[str, Any]:
+      config: Dict[str, Any] = self.SITE_CONFIG.get(web_key) # type:ignore
+      if not config:
+         raise ValueError(f"Configuration for {web_key} not found in SITE_CONFIG.")
 
-   def scrape(self, source, paragraph_selector, date_published_prop, date_modified_prop, author_prop) -> Dict[str, Any]:
-      title = self._extract_tag(prop="og:title", default_value='No title found', tag_name="meta", attribute='content')
-      url = self._extract_tag(prop="og:url", default_value='No URL found', tag_name="meta", attribute='content')
-      image = self._extract_tag(prop="og:image", default_value='No image found', tag_name="meta", attribute='content')
-      description = self._extract_tag(prop="og:description", default_value='No description found', tag_name="meta", attribute='content') 
+      source = config['source']
+      title = self._extract_tag([("property", "og:title")])
+      url = self._extract_tag([("property", "og:url")])
+      image = self._extract_tag([("property", "og:image")])
+      description = self._extract_tag([("property", "og:description")])
+      copyright = self._extract_tag([("name", "copyright")])
+      language = self._extract_tag([("property", "og:locale"), ("name", "language"), ("itemprop", "inLanguage")], default_value='vi')
 
-      date_published = self._extract_tag(prop=date_published_prop, tag_name="meta", attribute='content') \
-      or self._extract_tag(itemprop=date_modified_prop, default_value='No date published found', tag_name='meta', attribute='content')
+      if web_key == 'theanh28':
+         date_published = self._extract_json_ld_data('datePublished')
+      else:
+          date_published = self._extract_tag(config['date_published_prop'])
 
-      date_modified = self._extract_tag(prop=date_modified_prop, tag_name="meta", attribute='content') \
-      or self._extract_tag(itemprop=date_modified_prop, tag_name='meta', attribute='content') \
-      or self._extract_tag(name=date_modified_prop, default_value='No date modified found', tag_name='input', attribute='value')
+      if web_key in ['kenh14', 'soha']:
+         date_modified = self._extract_tag(config['date_modified_prop'], tags=['input'], attr='value')
+      elif web_key == 'theanh28':
+         date_modified = self._extract_json_ld_data('dateModified')
+      else:
+         date_modified = self._extract_tag(config['date_modified_prop'])
 
-      author = self._extract_tag(prop=author_prop, default_value=self.type, tag_name="meta", attribute='content')
-      copyright = self._extract_tag(name='copyright', default_value='No copyright found', tag_name="meta", attribute='content')
-      paragraphs = self._extract_paragraphs(paragraph_selector)
+      if web_key == 'vnexpress':
+         # special handling for vnexpress because they suck
+         author = self._extract_tag(config['author_prop'], attr='author-name')  or\
+         self._extract_tag(config['author_prop'])
+      elif web_key == 'theanh28':
+         # special handling for theanh28 because they suck
+         author = self._extract_tag(config['author_prop'], tags=['article'], attr='data-author')
+      else:
+         author = self._extract_tag(config['author_prop'])
 
-      # Try different selectors for language
-      language = \
-      self._extract_tag(prop='og:locale', tag_name="meta", attribute='content') \
-      or self._extract_tag(name='Language', tag_name="meta", attribute='content') \
-      or self._extract_tag(itemprop='inLanguage', tag_name="meta", attribute='content')
+      paragraphs = self._extract_paragraphs(config['paragraph_selector'])
 
       # Update the result dictionary with the extracted data
       self.result.update({
@@ -84,63 +167,9 @@ class Scrappers:
          'paragraphs' : paragraphs,
          'url' : url,
          'image' : image,
-         'label' : '...'  # Placeholder for label, can be updated later
+         'label' : '...'  # Placeholder for label
       })
       return self.result
-        
-
-   def VNExpress(self) -> Dict[str, Any]:
-      return self.scrape(
-         source='vnexpress',
-         paragraph_selector='article.fck_detail',
-         date_published_prop='datePublished',
-         date_modified_prop='dateModified',
-         author_prop='authorInfo'
-      )
-
-
-   def TuoiTre(self) -> Dict[str, Any]:
-      return self.scrape(
-         source='tuoitre',
-         paragraph_selector='div[itemprop="articleBody"]',
-         date_published_prop='article:published_time',
-         date_modified_prop='article:modified_time',
-         author_prop='dable:author'
-      )
-
-
-   def ThanhNien(self) -> Dict[str, Any]:
-      return self.scrape(
-         source='thanhnien',
-         paragraph_selector='div[itemprop="articleBody"]',
-         date_published_prop='datePublished',
-         date_modified_prop='dateModified',
-         author_prop='dable:author'
-      )
-
-
-   def Kenh14(self) -> Dict[str, Any]:
-      return self.scrape(
-         source='kenh14',
-         paragraph_selector='div.detail-content.afcbc-body',
-         date_published_prop='article:published_time',
-         date_modified_prop='hideLastModifiedDate',
-         author_prop='article:author'
-      )
-
-
-   def Soha(self) -> Dict[str, Any]:
-      return self.scrape(
-         source='soha',
-         paragraph_selector='div.detail-content.afcbc-body',
-         date_published_prop='article:published_time',
-         date_modified_prop='hidLastModifiedDate',
-         author_prop='article:author'
-      )
-
-
-   def GameK(self) -> Dict[str, Any]:
-      pass
 
 
    def run_and_write(self, urls: List[str], folder: str = "Data/") -> None:
@@ -169,7 +198,7 @@ class Scrappers:
 
    
    @staticmethod
-   def get(url: str) -> str:
+   def _get(url: str) -> str:
       res = Scrappers.session.get(url)
       if res.status_code == 200:
             res.encoding = 'utf-8'
@@ -183,15 +212,25 @@ class Scrappers:
       if "vnexpress" in url:
             return "vnexpress"
       elif "soha.vn" in url:
-            return "Soha"
+            return "soha"
       elif "tuoitre.vn" in url:
-            return "TuoiTre"
+            return "tuoitre"
       elif "thanhnien.vn" in url:
-            return "ThanhNien"
+            return "thanhnien"
       elif "kenh14.vn" in url:
-            return "Kenh14"
+            return "kenh14"
       elif "gamek.vn" in url:
-            return "GameK"
+            return "gamek"
+      elif "theanh28.vn" in url:
+            return "theanh28"
+      elif "chinhphu.vn" in url:
+            return "chinhphu"
+      elif "vietnamnet.vn" in url:
+            return "vietnamnet"
+      elif "nld.com.vn" in url:
+            return "nld"
+      elif "dantri.com.vn" in url:
+            return "dantri"
       else:
             raise ValueError("Unknown type: " + url)
         
@@ -208,6 +247,17 @@ class Scrappers:
             line = re.sub(r'([a-zA-ZÀ-ỹ])([A-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ])', r'\1 \2', line)
             cleaned_lines.append(line)
       return "\n".join(cleaned_lines).strip()
+   
+
+   def _extract_json_ld_data(self, key: str, default_value: str = None) -> str:
+      script_tag = self.bs.find('script', {'type': 'application/ld+json'})
+      if script_tag:
+         try:
+               json_data = json.loads(script_tag.string.strip())
+               return json_data.get(key, default_value)
+         except (json.JSONDecodeError, AttributeError):
+               return default_value
+      return default_value
       
 
    def __call__(self, url: str | List[str], folder: str = None, file_name: str = None) -> Any: # type:ignore
@@ -219,19 +269,14 @@ class Scrappers:
                raise ValueError("Folder must be specified when passing a list of URLs.")
          return self.run_and_write(url, folder)
          
-      html = self.get(url)
+      html = self._get(url)
       self.bs = BeautifulSoup(html, 'lxml')
       self.type = self._determine_type(url)
 
-      if self.type == 'vnexpress':
-         return self.VNExpress()
-      elif self.type == 'Soha':
-         return self.Soha()
-      elif self.type == 'TuoiTre':
-         return self.TuoiTre()
-      elif self.type == 'ThanhNien':
-         return self.ThanhNien()
-      elif self.type == 'Kenh14':
-         return self.Kenh14()
+      if self.type == 'theanh28':
+         # Disable SSL verification for the session
+          self.session.verify = False
       else:
-         raise ValueError(f"Unknown type: {type}")
+          self.session.verify = True
+
+      return self.scrape(self.type)  # Convert type to lowercase to match SITE_CONFIG keys
