@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import os
 import re
 import time
+import random
 
 class Scrappers:
    session = requests.Session()
@@ -53,10 +54,26 @@ class Scrappers:
    }
 
 
-   def __init__(self) -> None:
+   def __init__(self, word_limit: int = None, paragraphs: int = None, take_random: bool = False) -> None: # type:ignore
+      """
+      Initialize the Scrappers class with optional parameters for word limit, paragraphs, and random selection.
+      If word_limit is specified, paragraphs will be ignored.
+      If paragraphs is specified, word_limit will be ignored.
+      If both are specified, word_limit will take precedence.
+      If neither is specified, the default behavior will be to extract all paragraphs.
+
+      Args:
+         word_limit (int): Maximum number of words to extract from paragraphs.
+         paragraphs (int): Number of paragraphs to extract.
+         take_random (bool): Whether to take a random selection of paragraphs.
+      """
       self.bs = None
       self.type: str = ""
       self.result: Dict[str, Any] = {}
+
+      self.word_limit = word_limit
+      self.paragraphs = paragraphs if not word_limit else None 
+      self.take_random = take_random if self.paragraphs and not word_limit else False
 
 
    def _extract_tag(self, sel_key_pairs: List[Tuple[str, str]], tags: List[str] = ["meta"],
@@ -107,7 +124,24 @@ class Scrappers:
       if not tags:
          raise ValueError("No paragraph tags found in the specified selector.")
       
-      return self._clean_text('\n'.join([p.get_text(strip=True, separator=' ') for p in tags])) if tags else 'No paragraphs found' # type:ignore
+      if self.word_limit:
+         # Join paragraphs and split into words, then limit to word_limit
+         text = ' '.join([p.get_text(strip=True, separator=' ') for p in tags])
+         words = text.split()
+         limited_text = ' '.join(words[:self.word_limit])
+         return self._clean_text(limited_text)
+      elif self.paragraphs:
+         # If paragraphs are specified, return the first n paragraphs
+         if self.take_random:
+            # Randomly select paragraphs that are next to each other
+            start_index = random.randint(0, max(0, len(tags) - self.paragraphs))
+            selected_paragraphs = tags[start_index:start_index + self.paragraphs]
+         else:
+            selected_paragraphs = tags[:self.paragraphs] # First n paragraphs
+         return self._clean_text('\n'.join([p.get_text(strip=True, separator=' ') for p in selected_paragraphs]))
+      else:
+         # Default case: return all paragraphs as a single string
+         return self._clean_text('\n'.join([p.get_text(strip=True, separator=' ') for p in tags])) if tags else 'No paragraphs found'
    
 
    def _extract_json_ld(self, *keys, default_value=None) -> Tuple[str, ...]:
