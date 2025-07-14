@@ -18,7 +18,7 @@ if __name__ == "__main__":
     # sc.WriteJSON("Scrapper2/", "Paragraphs_test")
 
     # # Case 3: Random paragraphs
-    # # Take random only works when paragraphs is specified and word_limit is not specified or at least paragraphs is specified because the class will automatically disable word_limit.
+    # # Take random only works when paragraphs is specified and word_limit is not specified.
     # sc = Scrappers(paragraphs=3, take_random=True)  # Set to extract 3 random paragraphs
     # sc(url)
     # sc.WriteJSON("Scrapper2/", "RandomParagraphs_test")
