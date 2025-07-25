@@ -3,12 +3,9 @@ import json
 import shutil
 
 LABLE2NAME = {
-    1 : 'FAKE',
-    2: 'PARTIAL',
-    3: 'MISLEADING',
-    4: 'OPINION',
-    5: 'UNCLEAR',
-    6: 'REAL'
+    1 :'FAKE',
+    2: 'MISLEADING',
+    3: 'REAL'
 }
 
 def organize_files(sourceFolder: str = 'Data/', desFolder: str = 'Organized/'):
@@ -76,40 +73,6 @@ def organize_files(sourceFolder: str = 'Data/', desFolder: str = 'Organized/'):
     print(f"  Processed: {processed_count} files")
     print(f"  Skipped: {skipped_count} files")
     print(f"  Errors: {error_count} files")
-
-
-# def organize_files(sourceFolder: str = 'Test/', desFolder: str = 'Organized/'):
-#     # create folders
-#     print(f"Organizing files from {sourceFolder} to {desFolder}")
-#     print('======== Creating folders ========\n')
-#     for label in LABLE2NAME.values():
-#         if (not os.path.exists(os.path.join(desFolder, label))):
-#             os.makedirs(os.path.join(desFolder, label), exist_ok=True)
-#         else:
-#             print(f"Folder {label} already exists in {desFolder}")
-#     print('======== Folders created ========\n')
-
-#     # read files in the source folder
-#     files = os.scandir(sourceFolder)
-#     for file in files:
-#         if not file.name.endswith('.json'):
-#             print(f"\nSkipping non-JSON file: {file.name}\n")
-#             continue
-#         with open(file, 'r', encoding='utf-8') as f:
-#             data = json.load(f)
-#             label = data['label']
-
-#             if type(label) is not int:
-#                 print(f"\nInvalid label type for file {file.name}: {type(label)}\n")
-#                 continue
-
-#             label_folder = os.path.join(desFolder, LABLE2NAME[label])
-#             amount = sum(1 for entry in os.scandir(label_folder) if entry.is_file())
-#             file_name = f'FakeNewsDetection_{amount + 1}.json'
-#             newPath = os.path.join(label_folder, file_name)
-
-#             shutil.move(file.path, newPath)
-#             print(f"Moved {file.name} to {newPath}")
             
 
 if __name__ == '__main__':

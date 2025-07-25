@@ -218,7 +218,8 @@ class Scrappers:
          'paragraphs' : paragraphs,
          'url' : url,
          'image' : image,
-         'label' : '...'  # Placeholder for label
+         'label' : '...',  # Placeholder for label
+         'type' : 'article' if source in {'vnexpress', 'tuoitre', 'thanhnien', 'kenh14', 'soha', 'gamek', 'theanh28', 'chinhphu', 'vietnamnet', 'nld', 'dantri'} else 'unknown'
       })
       return self.result
 
