@@ -149,7 +149,7 @@ class Scrappers:
     Parse all <script type="application/ld+json"> tags and return the first occurrence
     of one of the requested keys.
     """
-    scripts = self.bs.find_all('script', type='application/ld+json')
+    scripts = self.bs.find_all('script', type='application/ld+json') # type:ignore
     results = []
     
     for key in keys:
@@ -239,7 +239,7 @@ class Scrappers:
       amount = sum(1 for entry in os.scandir(folder) if entry.is_file())
       for link in urls:
          self(link) # this works because __call__ is defined
-         file_name = f'{self.type}_{amount + 1}'
+         file_name = f'{self.type.upper()}_{amount + 1}'
          self.WriteJSON(folder, file_name)
          amount += 1
 
@@ -255,7 +255,7 @@ class Scrappers:
          os.makedirs(Path)
       
       file_path = os.path.join(Path, file_name + ".json")
-      with open(file_path, "w") as f:
+      with open(file_path, "w", encoding='utf-8') as f:
          json.dump(self.result, f, indent=4, ensure_ascii=False)
          print(f"Data written to {file_path}")
 
