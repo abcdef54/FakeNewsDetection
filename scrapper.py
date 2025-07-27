@@ -2,6 +2,7 @@ import requests
 from typing import Dict, Any, List, Tuple
 import json
 from bs4 import BeautifulSoup
+from pathlib import Path
 import os
 import re
 import time
@@ -117,7 +118,7 @@ class Scrappers:
       if config.get('br_replace'):
          tags = paragraph_tags.find_all('br')
          for br in tags:
-            br.replace_with('\n')
+            br.replace_with('\n') #type:ignore
       else:
          tags = paragraph_tags.find_all('p') 
 
@@ -155,7 +156,7 @@ class Scrappers:
     for key in keys:
         found = False
         for script in scripts:
-            text = script.string or script.get_text()
+            text = script.string or script.get_text() #type:ignore
             try:
                 data = json.loads(text)
             except (json.JSONDecodeError, TypeError):
@@ -259,6 +260,31 @@ class Scrappers:
       with open(file_path, "w", encoding='utf-8') as f:
          json.dump(self.result, f, indent=4, ensure_ascii=False)
          print(f"Data written to {file_path}")
+
+   
+   @staticmethod
+   def empty_social_json(destination = 'Data/', source: str = 'facebook', amount: int = 1):
+    data = {
+        "source" : source,
+        "page-url" : "https://www.facebook.com/profile.php?id=0123456789",
+        "post-url" : "https://www.facebook.com/0123456789/posts/1234567890123456",
+        "main-text" : "Example post text",
+        "image-url" : "https://example.com/image.jpg",
+        "label" : "...",
+        "type" : "social",
+    }
+    destination = Path(destination)
+    destination.mkdir(parents=True, exist_ok=True)
+    
+    file_count = sum(1 for entry in os.scandir(destination) if entry.is_file() and entry.name.endswith('.json'))
+    
+    for _ in range(amount):
+        file_path = destination / f'{source.upper()}_{file_count + 1}.json'
+
+        with open(file_path, 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+            file_count += 1
+            print(f'New empty social JSON file created at {file_path}')
 
       
    @staticmethod
