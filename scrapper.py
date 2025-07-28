@@ -382,7 +382,7 @@ class Scrappers:
          return self.run_and_write(url, folder)
       
       self.type = self._determine_type(url)
-      if self.type == 'theanh28':
+      if self.type == 'theanh28.vn':
          # Disable SSL verification for the session
           self.session.verify = False
       else:
