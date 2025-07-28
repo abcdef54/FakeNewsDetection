@@ -18,40 +18,59 @@ class Scrappers:
 
    # Configuration for different sites
    SITE_CONFIG = {
-      'vnexpress': {
+      'vnexpress.net': {
          'paragraph_selector': 'article.fck_detail',
       },
-      'tuoitre': {
+      'tuoitre.vn': {
          'paragraph_selector': 'div[itemprop="articleBody"]',
       },
-      'thanhnien': {
+      'thanhnien.vn': {
          'paragraph_selector': 'div[itemprop="articleBody"]',
       },
-      'kenh14': {
+      'kenh14.vn': {
          'paragraph_selector': 'div.detail-content.afcbc-body',
       },
-      'soha': {
+      'soha.vn': {
          'paragraph_selector': 'div.detail-content.afcbc-body',
       },
-      'gamek': {
+      'gamek.vn': {
          'paragraph_selector': 'div.rightdetail_content.detailsmallcontent',
       },
-      'theanh28': {
+      'theanh28.vn': {
          'paragraph_selector': 'div.message-content.js-messageContent article.message-body',
          'br_replace': True,
       },
-      'chinhphu': {
+      'chinhphu.vn': {
          'paragraph_selector': 'div.detail-content.afcbc-body',
       },
-      'vietnamnet': {
+      'vietnamnet.vn': {
          'paragraph_selector': 'div.maincontent.main-content',
       },
-      'nld': {
+      'laodong.vn': {
          'paragraph_selector': 'div[id="gallery-ctt"]',
       },
-      'dantri': {
+      'dantri.com.vn': {
          'paragraph_selector': 'div.singular-content',
+      },
+      'tingia.gov.vn': {
+          'paragraph_selector' : 'div.maincontent.main-content.post-body'
+      },
+      'vietgiaitri.com' : {
+          'paragraph_selector' : 'div.entry.clearfix'
+      },
+      'webtretho.com' : {
+        'paragraph_selector' : 'div.post-content'
+      },
+      'tiin.vn' : {
+         'paragraph_selector' : 'div.detail-content'
+      },
+      '24h.com.vn' : {
+          'paragraph_selector' : 'article.cate-24h-foot-arti-deta-info'
+      },
+      'baoangiang.com.vn' : {
+         'paragraph_selector' : 'div.content-fck.slider-jsgallery'
       }
+      
    }
 
 
@@ -74,7 +93,7 @@ class Scrappers:
 
       self.word_limit = word_limit
       self.paragraphs = paragraphs if not word_limit else None 
-      self.take_random = take_random if self.paragraphs and not word_limit else False
+      self.take_random = take_random
 
 
    def _extract_tag(self, sel_key_pairs: List[Tuple[str, str]], tags: List[str] = ["meta"],
@@ -99,8 +118,8 @@ class Scrappers:
                   return element.get(attr, default_value) if default_value is not None else element.get(attr) # type:ignore
       return default_value
 
-   
-   def _extract_paragraphs(self) -> str:
+
+   def _extract_paragraphs(self) -> str | None:
       """
       Extract paragraphs from the HTML content based on the configured selector for the website type.
       Returns cleaned text from the paragraphs.
@@ -125,21 +144,31 @@ class Scrappers:
       if not tags:
          raise ValueError("No paragraph tags found in the specified selector.")
       
-      if self.word_limit:
-         # Join paragraphs and split into words, then limit to word_limit
-         text = ' '.join([p.get_text(strip=True, separator=' ') for p in tags])
-         words = text.split()
-         limited_text = ' '.join(words[:self.word_limit])
-         return self._clean_text(limited_text)
-      elif self.paragraphs:
-         # If paragraphs are specified, return the first n paragraphs
-         if self.take_random:
-            # Randomly select paragraphs that are next to each other
-            start_index = random.randint(0, max(0, len(tags) - self.paragraphs))
-            selected_paragraphs = tags[start_index:start_index + self.paragraphs]
+
+      if self.take_random:
+         if self.word_limit:
+            text = ' '.join([p.get_text(strip=True, separator=' ') for p in tags])
+            words = text.split()
+            start_index = random.randint(0, max(0, len(words) - self.word_limit))
+            limited_text = ' '.join(words[start_index : start_index + self.word_limit])
+            return self._clean_text(limited_text)
          else:
-            selected_paragraphs = tags[:self.paragraphs] # First n paragraphs
-         return self._clean_text('\n'.join([p.get_text(strip=True, separator=' ') for p in selected_paragraphs]))
+            # Randomly select paragraphs that are next to each other
+            start_index = random.randint(0, max(0, len(tags) - self.paragraphs)) # type:ignore
+            selected_paragraphs = tags[start_index : start_index + self.paragraphs] # type:ignore
+            return self._clean_text('\n'.join([p.get_text(strip=True, separator=' ') for p in selected_paragraphs]))
+      
+      elif not self.take_random:
+         if self.word_limit:
+            text = ' '.join([p.get_text(strip=True, separator=' ') for p in tags])
+            words = text.split()
+            limited_text = ' '.join(words[:self.word_limit])
+            return self._clean_text(limited_text)
+         elif self.paragraphs:
+            # If paragraphs are specified, return the first n paragraphs
+            selected_paragraphs = tags[:self.paragraphs]
+            return self._clean_text('\n'.join([p.get_text(strip=True, separator=' ') for p in selected_paragraphs]))
+      
       else:
          # Default case: return all paragraphs as a single string
          return self._clean_text('\n'.join([p.get_text(strip=True, separator=' ') for p in tags])) if tags else 'No paragraphs found'
@@ -220,7 +249,7 @@ class Scrappers:
          'url' : url,
          'image' : image,
          'label' : '...',  # Placeholder for label
-         'type' : 'article' if source in {'vnexpress', 'tuoitre', 'thanhnien', 'kenh14', 'soha', 'gamek', 'theanh28', 'chinhphu', 'vietnamnet', 'nld', 'dantri'} else 'unknown'
+         'type' : 'article' if source in Scrappers.SITE_CONFIG else 'unknown'
       })
       return self.result
 
@@ -238,10 +267,10 @@ class Scrappers:
       if not os.path.exists(folder):
          os.mkdir(folder)
 
-      amount = sum(1 for entry in os.scandir(folder) if entry.is_file())
+      amount = sum(1 for entry in os.scandir(folder) if entry.is_file() and entry.name.endswith('.json'))
       for link in urls:
          self(link) # this works because __call__ is defined
-         file_name = f'{self.type.upper()}_{amount + 1}'
+         file_name = f'{self.type.split('.')[0].upper()}_{amount + 1}'
          self.WriteJSON(folder, file_name)
          amount += 1
 
@@ -323,30 +352,10 @@ class Scrappers:
 
    @staticmethod
    def _determine_type(url: str) -> str:
-      if "vnexpress" in url:
-            return "vnexpress"
-      elif "soha.vn" in url:
-            return "soha"
-      elif "tuoitre.vn" in url:
-            return "tuoitre"
-      elif "thanhnien.vn" in url:
-            return "thanhnien"
-      elif "kenh14.vn" in url:
-            return "kenh14"
-      elif "gamek.vn" in url:
-            return "gamek"
-      elif "theanh28.vn" in url:
-            return "theanh28"
-      elif "chinhphu.vn" in url:
-            return "chinhphu"
-      elif "vietnamnet.vn" in url:
-            return "vietnamnet"
-      elif "laodong.vn" in url:
-            return "nld"
-      elif "dantri.com.vn" in url:
-            return "dantri"
-      else:
-            raise ValueError("Unknown type: " + url)
+      for site in Scrappers.SITE_CONFIG.keys():
+          if site in url:
+            return site
+      raise ValueError(f"Unknown URL type: {url}")
         
 
    @staticmethod
