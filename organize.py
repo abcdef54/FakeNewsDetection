@@ -65,9 +65,11 @@ def organize_files(sourceFolder: str = 'Data/', desFolder: str = 'Organized/'):
                     # Generate new file path
                     type = type.capitalize()
                     type_folder = Path(os.path.join(desFolder, LABLE2NAME[label], type))
+
                     file_count = file_counts[LABLE2NAME[label]].get(type, 0)
                     file_counts[LABLE2NAME[label]][type] = file_count + 1
-                    file_name = f'FND_{type}_{file_count + 1}.json'
+
+                    file_name = f'FND_{type}_{LABLE2NAME[label]}_{file_count + 1}.json'
                     new_path = type_folder / file_name
                     
                     # Move file
@@ -93,5 +95,5 @@ def organize_files(sourceFolder: str = 'Data/', desFolder: str = 'Organized/'):
             
 
 if __name__ == '__main__':
-    organize_files(sourceFolder='Socials/', desFolder='Organized/')
+    organize_files(sourceFolder='Data/', desFolder='Organized/')
     print("Files organized successfully.")
