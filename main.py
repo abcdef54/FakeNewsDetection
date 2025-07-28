@@ -83,12 +83,13 @@ if __name__ == "__main__":
     sc = Scrappers(word_limit=100, take_random=True)  # Set to extract 100 random words that are next to each other
     sc = Scrappers(paragraphs=3, take_random=True)  # Set to extract 3 random paragraphs that are next to each other
 
-    3 - Support 5 new news websites:
+    3 - Support 6 new news websites:
     - tingia.gov.vn
     - baoangiang.com.vn
     - vietgiaitri.com
     - webtretho.com
     - tiin.vn
+    - 24h.com.vn
 
     All supported websites:
     [vnexpress.net, tuoitre.vn, vietnamnet.vn, thanhnien.vn, kenh14.vn, soha.vn, 
