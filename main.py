@@ -1,4 +1,4 @@
-from scrapper import Scrappers
+from Code import Scraper
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         "https://baoangiang.com.vn/sieu-lua-an-do-dung-dai-su-quan-gia-de-chiem-doat-tien-ty-a425143.html",
     ]
     folder = "Data/"
-    sc = Scrappers(word_limit=150, take_random=False)
+    sc = Scraper(word_limit=150, take_random=False)
     sc(urls, folder) # Specify folder for list of URLs 
     '''
     New updates:
