@@ -115,7 +115,7 @@ class Scrappers:
          for sel, key, in sel_key_pairs:
             element = self.bs.find(tag, {sel: key}) # type:ignore
             if element:
-                  return element.get(attr, default_value) if default_value is not None else element.get(attr) # type:ignore
+                  return element.get(attr, default_value) # type:ignore
       return default_value
 
 
@@ -232,7 +232,7 @@ class Scrappers:
       language = self._extract_tag([("property", "og:locale"), ("name", "language"), ("itemprop", "inLanguage")], default_value='vi')
 
       author, date_published, date_modified = self._extract_json_ld('author', 'datePublished', 'dateModified')
-
+      
       paragraphs = self._extract_paragraphs()
 
       # Update the result dictionary with the extracted data
@@ -262,7 +262,7 @@ class Scrappers:
          folder (str): Folder to save the JSON files.
       """
       if urls is None or not isinstance(urls, list):
-         raise ValueError("URL must be a non-empty list of strings.")
+         print("No URLs provided or invalid format. Please provide a list of URLs.")
       
       if not os.path.exists(folder):
          os.mkdir(folder)
@@ -282,6 +282,10 @@ class Scrappers:
          Path (str): The directory path where the JSON file will be saved.
          file_name (str): The name of the JSON file (without extension).
       """
+      if not self.result:
+         print("No data to write. Please run the scraper first.")
+         return
+      
       if not os.path.exists(Path):
          os.makedirs(Path)
       

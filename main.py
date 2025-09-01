@@ -1,4 +1,4 @@
-from scrapper import Scrappers
+from Code import Scraper
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         "https://baoangiang.com.vn/sieu-lua-an-do-dung-dai-su-quan-gia-de-chiem-doat-tien-ty-a425143.html",
     ]
     folder = "Data/"
-    sc = Scrappers(word_limit=150, take_random=False)
+    sc = Scraper(word_limit=150, take_random=False)
     sc(urls, folder) # Specify folder for list of URLs 
     '''
     New updates:
@@ -83,12 +83,13 @@ if __name__ == "__main__":
     sc = Scrappers(word_limit=100, take_random=True)  # Set to extract 100 random words that are next to each other
     sc = Scrappers(paragraphs=3, take_random=True)  # Set to extract 3 random paragraphs that are next to each other
 
-    3 - Support 5 new news websites:
+    3 - Support 6 new news websites:
     - tingia.gov.vn
     - baoangiang.com.vn
     - vietgiaitri.com
     - webtretho.com
     - tiin.vn
+    - 24h.com.vn
 
     All supported websites:
     [vnexpress.net, tuoitre.vn, vietnamnet.vn, thanhnien.vn, kenh14.vn, soha.vn, 
