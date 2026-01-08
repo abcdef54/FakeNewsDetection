@@ -67,10 +67,12 @@ if __name__ == "__main__":
         # "https://www.webtretho.com/f/chuan-bi-mang-thai/chuan-bi-mang-thai-tu-nhien-khong-don-gian-la-ngung-tranh-thai",
         # "https://tiin.vn/chuyen-muc/song/pham-thoai-xuat-hien-tieu-tuy-sau-on-ao-sao-ke.html",
         # "https://www.24h.com.vn/tin-tuc-quoc-te/thai-lan-len-tieng-thong-tin-danh-trung-toa-nha-casino-o-bien-gioi-campuchia-c415a1684664.html",
-        "https://baoangiang.com.vn/sieu-lua-an-do-dung-dai-su-quan-gia-de-chiem-doat-tien-ty-a425143.html",
+        # "https://baoangiang.com.vn/sieu-lua-an-do-dung-dai-su-quan-gia-de-chiem-doat-tien-ty-a425143.html",
+        "https://vnexpress.net/con-nguoi-co-the-can-huan-luyen-de-phan-biet-khuon-mat-ai-tao-4999939.html"
+        
     ]
     folder = "Data/"
-    sc = Scraper(word_limit=150, take_random=False)
+    sc = Scraper(word_limit=150)
     sc(urls, folder) # Specify folder for list of URLs 
     '''
     New updates:
