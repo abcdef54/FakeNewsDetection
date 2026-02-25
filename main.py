@@ -1,100 +1,178 @@
-from Code import Scraper
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+"""
+Vietnamese Fake News Detection - CLI Interface
+
+Usage:
+    python main.py --text "Your Vietnamese news text here"
+    python main.py --file path/to/news.txt
+    python main.py --interactive
+"""
+
+import argparse
+import torch
+from transformers import AutoTokenizer
+import sys
+import os
+
+# Add src to path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+from src.model import HybridModel
+from src.features import TextStyleExtractor
+from src.rag_utils import RAGSearch
+import src.preprocessing as preprocessing
+
+
+def load_model(checkpoint_path='checkpoints/phobert_hybrid_model.pt', device='cpu'):
+    """Load trained model from checkpoint"""
+    print(f"Loading model from {checkpoint_path}...")
+    
+    model = HybridModel(model_name="vinai/phobert-base-v2", style_dim=10)
+    state_dict = torch.load(checkpoint_path, map_location=device)
+    
+    # Handle checkpoint format (may have 'model_state_dict' key)
+    if isinstance(state_dict, dict) and 'model_state_dict' in state_dict:
+        model.load_state_dict(state_dict['model_state_dict'])
+        print(f"✓ Model loaded (Validation F1: {state_dict.get('val_f1', 'N/A')})")
+    else:
+        model.load_state_dict(state_dict)
+        print("✓ Model loaded")
+    
+    model.to(device).eval()
+    return model
+
+
+def predict(text, model, tokenizer, rag_searcher, style_extractor, device='cpu', max_len=256):
+    """Predict if text is FAKE or REAL"""
+    
+    # Step 1: RAG Retrieval
+    evidence, bm25_score, mean_idf = rag_searcher(text)
+    
+    # Step 2: Extract style features
+    style_vec = style_extractor.get_style_vector(text, mean_idf=mean_idf, bm25_score=bm25_score)
+    style_tensor = torch.tensor([style_vec], dtype=torch.float32).to(device)
+    
+    # Step 3: Preprocess and tokenize as sentence pair
+    # FIX: Use sentence-pair tokenization [CLS] text [SEP] evidence [SEP]
+    # with evidence capped at 25% of token budget to prevent KB real-news
+    # patterns from overwhelming the input text's style signals.
+    clean_t = preprocessing.clean_text(text)
+    clean_e = preprocessing.clean_text(evidence) if evidence else None
+    
+    if clean_e:
+        evidence_limit = 150
+        evid_ids = tokenizer.encode(clean_e, add_special_tokens=False)
+        if len(evid_ids) > evidence_limit:
+            evid_ids = evid_ids[:evidence_limit]
+            clean_e = tokenizer.decode(evid_ids, skip_special_tokens=True)
+    
+    encoding = tokenizer(
+        clean_t,
+        text_pair=clean_e,
+        max_length=max_len,
+        padding='max_length',
+        truncation=True,
+        return_tensors='pt'
+    )
+    
+    input_ids = encoding['input_ids'].to(device)
+    attention_mask = encoding['attention_mask'].to(device)
+    
+    # Step 4: Predict
+    with torch.no_grad():
+        logits = model(input_ids, attention_mask, style_tensor)
+        probs = torch.softmax(logits, dim=-1)
+        predicted_label = torch.argmax(probs, dim=-1).item()
+        confidence = probs[0, predicted_label].item()
+    
+    return {
+        'label': 'FAKE' if predicted_label == 0 else 'REAL',
+        'confidence': confidence,
+        'probabilities': {
+            'FAKE': probs[0, 0].item(),
+            'REAL': probs[0, 1].item()
+        }
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Vietnamese Fake News Detection')
+    parser.add_argument('--text', type=str, help='Vietnamese news text to analyze')
+    parser.add_argument('--file', type=str, help='Path to text file containing news')
+    parser.add_argument('--interactive', action='store_true', help='Interactive mode')
+    parser.add_argument('--model', type=str, default='checkpoints/phobert_hybrid_model.pt', 
+                       help='Path to model checkpoint')
+    parser.add_argument('--gpu', action='store_true', help='Use GPU if available')
+    
+    args = parser.parse_args()
+    
+    # Setup device
+    device = 'cuda' if (args.gpu and torch.cuda.is_available()) else 'cpu'
+    print(f"Using device: {device}")
+    
+    # Load components
+    print("\n[1/4] Loading model...")
+    model = load_model(args.model, device)
+    
+    print("[2/4] Loading tokenizer...")
+    tokenizer = AutoTokenizer.from_pretrained("vinai/phobert-base-v2")
+    
+    print("[3/4] Initializing RAG searcher...")
+    rag_searcher = RAGSearch(database_jsonl_paths='Organized', cache_path='rag_cache')
+    
+    print("[4/4] Loading style extractor...")
+    style_extractor = TextStyleExtractor()
+    
+    print("\n✓ All components ready!\n")
+    
+    # Interactive mode
+    if args.interactive:
+        print("=" * 80)
+        print("INTERACTIVE FAKE NEWS DETECTION")
+        print("=" * 80)
+        print("Enter Vietnamese news text (type 'quit' to exit)\n")
+        
+        while True:
+            text = input("News text: ")
+            if text.lower() in ['quit', 'exit', 'q']:
+                break
+            
+            if not text.strip():
+                continue
+            
+            result = predict(text, model, tokenizer, rag_searcher, style_extractor, device)
+            
+            print(f"\n{'='*80}")
+            print(f"Prediction: {result['label']}")
+            print(f"Confidence: {result['confidence']:.2%}")
+            print(f"Probabilities: REAL={result['probabilities']['REAL']:.2%}, "
+                  f"FAKE={result['probabilities']['FAKE']:.2%}")
+            print(f"{'='*80}\n")
+    
+    # File mode
+    elif args.file:
+        with open(args.file, 'r', encoding='utf-8') as f:
+            text = f.read()
+        
+        print(f"Analyzing file: {args.file}\n")
+        result = predict(text, model, tokenizer, rag_searcher, style_extractor, device)
+        
+        print(f"{'='*80}")
+        print(f"Prediction: {result['label']}")
+        print(f"Confidence: {result['confidence']:.2%}")
+        print(f"{'='*80}")
+    
+    # Text mode
+    elif args.text:
+        result = predict(args.text, model, tokenizer, rag_searcher, style_extractor, device)
+        
+        print(f"{'='*80}")
+        print(f"Prediction: {result['label']}")
+        print(f"Confidence: {result['confidence']:.2%}")
+        print(f"{'='*80}")
+    
+    else:
+        parser.print_help()
+
 
 if __name__ == "__main__":
-    # # How to use the Scrappers class
-    # url = "https://vnexpress.net/duong-day-san-xuat-xe-may-dien-gia-bi-phat-hien-4913042.html"
-
-    # # Get to know the parameters
-    # # Case 1: Word limit
-    # sc = Scrappers(word_limit=100)  # Set word limit to 100
-    # sc(url) 
-    # sc.WriteJSON("Scrapper2/", "WordLimit_test")
-
-
-    # # Case 2: Paragraphs
-    # sc = Scrappers(paragraphs=3)  # Set to extract 3 paragraphs
-    # sc(url)
-    # sc.WriteJSON("Scrapper2/", "Paragraphs_test")
-
-
-    # # Case 3: Random paragraphs
-    # # Take random works for both word_limit and paragraphs
-    # sc = Scrappers(paragraphs=3, take_random=True)  # Set to extract 3 random paragraphs that are next to each other
-    # sc = Scrappers(word_limit=100, take_random=True)  # Set to extract 100 random words that are next to each other
-    # sc(url)
-    # sc.WriteJSON("Scrapper2/", "RandomParagraphs_test")
-
-
-    # # Case 4: Word limit and paragraphs
-    # # If both word_limit and paragraphs are specified, word_limit will take precedence.
-    # sc = Scrappers(word_limit=100, paragraphs=3, take_random = True)  # Set word limit to 100 and paragraphs to 3
-    # sc(url)
-    # sc.WriteJSON("Scrapper2/", "WordLimitAndParagraphs_test")
-
-
-    # # Default case: Extract all paragraphs
-    # sc = Scrappers()  # No word limit or paragraphs specified
-    # sc(url)
-    # sc.WriteJSON("Scrapper2/", "Default_test")
-
-
-    # Example usage of Scrappers class with a single URL or a list of URLs
-    # # Option 1: Single URL
-    # folder = "TestSingleURL/"
-    # sc = Scrappers()
-    # sc(url)
-    # sc.WriteJSON(folder, "single_url_result")  # Folder to save the JSON file, and the name of the file
-
-
-    # Option 2: List of URLs
-    urls = [
-        # Add your URLs here
-        # "https://vnexpress.net/cuu-dai-su-noi-ve-cau-noi-giup-binh-thuong-hoa-quan-he-viet-my-4912958.html",
-        # "https://tuoitre.vn/thu-tuong-muon-can-tho-tien-phong-ve-khoa-hoc-cong-nghe-doi-moi-sang-tao-va-chuyen-doi-so-2025071318184971.htm",
-        # "https://vietnamnet.vn/tong-thong-iran-bi-thuong-trong-cuoc-khong-kich-cua-israel-2421204.html",
-        # "https://thanhnien.vn/bo-y-te-de-xuat-hon-151-ti-ho-tro-cac-gia-dinh-chi-sinh-2-con-gai-185250713181742206.htm",
-        # "https://kenh14.vn/khach-viet-thang-thot-khi-goi-xien-nuong-ven-duong-o-trung-quoc-toi-khong-biet-nuot-kieu-gi-luon-215250713195229459.chn",
-        # "https://soha.vn/nu-nghe-si-dinh-dam-phai-roi-showbiz-vi-clip-chan-dong-u50-le-bong-khong-con-cai-o-xu-nguoi-198250713165450469.htm",
-        # "https://theanh28.vn/threads/tran-nhat-tuan-giam-doc-chien-luoc-theanh28-entertainment-va-chuyen-khoi-nghiep.3633/",
-        # "https://gamek.vn/tua-game-battle-royale-lay-cam-hung-tu-gta-doi-ten-lan-thu-hai-tiep-tuc-mien-phi-tren-steam-178250710101437849.chn",
-        # "https://baochinhphu.vn/no-luc-cao-nhat-phan-dau-hoan-thanh-thang-loi-cac-chi-tieu-phat-trien-kt-xh-nam-2025-102250712113541294.htm",
-        # "https://laodong.vn/van-hoa-giai-tri/unesco-cong-nhan-di-san-the-gioi-lien-bien-gioi-dau-tien-giua-viet-nam-va-lao-1539552.ldo",
-        # "https://dantri.com.vn/xa-hoi/don-doc-tphcm-trinh-phuong-an-han-che-xe-phat-thai-cao-20250713180551692.htm",
-        # 'https://tingia.gov.vn/bat-coc-hue.html',
-        # "https://vietgiaitri.com/bi-an-hop-dong-hon-nhan-cua-ronaldo-va-ban-gai-sexy-nang-wag-duoc-chu-cap-tien-ty-mot-thang-neu-chia-tay-20250728i7497452/",
-        # "https://www.webtretho.com/f/chuan-bi-mang-thai/chuan-bi-mang-thai-tu-nhien-khong-don-gian-la-ngung-tranh-thai",
-        # "https://tiin.vn/chuyen-muc/song/pham-thoai-xuat-hien-tieu-tuy-sau-on-ao-sao-ke.html",
-        # "https://www.24h.com.vn/tin-tuc-quoc-te/thai-lan-len-tieng-thong-tin-danh-trung-toa-nha-casino-o-bien-gioi-campuchia-c415a1684664.html",
-        # "https://baoangiang.com.vn/sieu-lua-an-do-dung-dai-su-quan-gia-de-chiem-doat-tien-ty-a425143.html",
-        "https://vnexpress.net/con-nguoi-co-the-can-huan-luyen-de-phan-biet-khuon-mat-ai-tao-4999939.html"
-        
-    ]
-    folder = "Data/"
-    sc = Scraper(word_limit=150)
-    sc(urls, folder) # Specify folder for list of URLs 
-    '''
-    New updates:
-
-    1 - Create new empty json file for social news
-    Scrappers.empty_social_json(destination='Data/', source='facebook', amount=5)
-    this will create 5 new empty JSON file with the correct structure you only have to put in your own text and info
-
-    2 - Now support "take_random" parameter for both word_limit and paragraphs.
-    sc = Scrappers(word_limit=100, take_random=True)  # Set to extract 100 random words that are next to each other
-    sc = Scrappers(paragraphs=3, take_random=True)  # Set to extract 3 random paragraphs that are next to each other
-
-    3 - Support 6 new news websites:
-    - tingia.gov.vn
-    - baoangiang.com.vn
-    - vietgiaitri.com
-    - webtretho.com
-    - tiin.vn
-    - 24h.com.vn
-
-    All supported websites:
-    [vnexpress.net, tuoitre.vn, vietnamnet.vn, thanhnien.vn, kenh14.vn, soha.vn, 
-    theanh28.vn, gamek.vn, chinhphu.vn, laodong.vn, dantri.com.vn, tingia.gov.vn,
-    vietgiaitri.com, webtretho.com, tiin.vn, 24h.com.vn, baoangiang.com.vn]
-    '''
+    main()
