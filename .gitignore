@@ -1,3 +1,10 @@
 .fakenews/
 __pycache__/
-Data/
+
+KnowledgeBase/KB35.jsonl
+
+src/CACHES/KNOWLEDGE_BASE_CACHE/index.faiss
+src/CACHES/KNOWLEDGE_BASE_CACHE/rag.pkl
+
+src/checkpoints/phobert_best.pth
+src/checkpoints/visobert_best.pth
