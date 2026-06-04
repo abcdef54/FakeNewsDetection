@@ -17,6 +17,22 @@ To address these challenges, this project investigates:
 3. **Robust Data Augmentation**: Simulating social media noise during training to increase generalization on informal texts.
 4. **Model Explainability**: Utilizing Integrated Gradients to trace predictions back to specific input words and style characteristics.
 
+### 1.1. Technology Stack
+
+This project leverages a modern Python-based AI/NLP ecosystem to build, train, and run the fake news detection ensemble. The key technologies, packages, and tools are categorized below:
+
+| Category | Technology / Package | Description |
+| :--- | :--- | :--- |
+| **Deep Learning** | **PyTorch** & **Hugging Face Transformers** | Model architecture backbone, custom tokenizers, and pretrained language model experts (`PhoBERT`, `ViSoBERT`). |
+| **Dense Retrieval** | **Sentence-Transformers** & **FAISS** | Generates 384-dimensional dense query embeddings and performs high-speed sub-millisecond semantic search on the facts corpus. |
+| **Sparse Retrieval** | **Rank-BM25** | Reranks dense search results using exact keyword matching (BM25L) for hybrid retrieval optimization. |
+| **Vietnamese NLP** | **Underthesea** | Standardized word segmentation, spelling corrections, and linguistic structure validation for Vietnamese text. |
+| **Explainable AI** | **Captum** | Implements Integrated Gradients (Layer Attribution) to map neural decisions back to individual input tokens and style features. |
+| **Data & Utilities** | **Pandas**, **NumPy**, **Scikit-learn** | Structured data ingestion, vector operations, training-test splits, and validation metrics (Accuracy, F1-Score, Confusion Matrices). |
+| **Visualization** | **Matplotlib** & **Seaborn** | Renders training/validation loss curves, accuracy curves, and confusion matrix heatmaps. |
+| **Data Collection** | **BeautifulSoup4**, **Requests**, **Lxml** | Multithreaded scraping pipelines for web data collection and corpus ingestion. |
+| **DevOps & Execution** | **Docker** & **Shell/Batch Scripts** | Unified execution environments featuring automatic volume mounts, GPU acceleration fallback, and interactive shell wrappers. |
+
 ---
 
 ## 2. Dataset and Directory Structure
