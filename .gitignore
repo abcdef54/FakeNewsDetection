@@ -1,10 +1,32 @@
+# Virtual Environment
 .fakenews/
-__pycache__/
+venv/
+env/
 
+# Python Cache & Compiled Files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE & Editor files
+.vscode/
+.idea/
+.project
+.pydevproject
+.settings/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# Data & Knowledge Base Files
 KnowledgeBase/KB35.jsonl
 
-src/CACHES/KNOWLEDGE_BASE_CACHE/index.faiss
-src/CACHES/KNOWLEDGE_BASE_CACHE/rag.pkl
+# Models & Checkpoints
+src/checkpoints/*.pth
+src/checkpoints/*.pt
+src/checkpoints/*.bin
 
-src/checkpoints/phobert_best.pth
-src/checkpoints/visobert_best.pth
+# Cache Files (RAG and Pre-computed Datasets)
+src/CACHES/**/*.pkl
+src/CACHES/**/*.faiss
+src/CACHES/**/*.index

@@ -22,7 +22,7 @@ from src.rag_utils import RAGSearch
 import src.preprocessing as preprocessing
 
 
-def load_model(checkpoint_path='checkpoints/phobert_hybrid_model.pt', device='cpu'):
+def load_model(checkpoint_path='src/checkpoints/phobert_best.pth', device='cpu'):
     """Load trained model from checkpoint"""
     print(f"Loading model from {checkpoint_path}...")
     
@@ -32,10 +32,10 @@ def load_model(checkpoint_path='checkpoints/phobert_hybrid_model.pt', device='cp
     # Handle checkpoint format (may have 'model_state_dict' key)
     if isinstance(state_dict, dict) and 'model_state_dict' in state_dict:
         model.load_state_dict(state_dict['model_state_dict'])
-        print(f"✓ Model loaded (Validation F1: {state_dict.get('val_f1', 'N/A')})")
+        print(f"[SUCCESS] Model loaded (Validation F1: {state_dict.get('val_f1', 'N/A')})")
     else:
         model.load_state_dict(state_dict)
-        print("✓ Model loaded")
+        print("[SUCCESS] Model loaded")
     
     model.to(device).eval()
     return model
@@ -99,8 +99,8 @@ def main():
     parser.add_argument('--text', type=str, help='Vietnamese news text to analyze')
     parser.add_argument('--file', type=str, help='Path to text file containing news')
     parser.add_argument('--interactive', action='store_true', help='Interactive mode')
-    parser.add_argument('--model', type=str, default='checkpoints/phobert_hybrid_model.pt', 
-                       help='Path to model checkpoint')
+    parser.add_argument('--model', type=str, default='src/checkpoints/phobert_best.pth', 
+                        help='Path to model checkpoint')
     parser.add_argument('--gpu', action='store_true', help='Use GPU if available')
     
     args = parser.parse_args()
@@ -117,12 +117,12 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained("vinai/phobert-base-v2")
     
     print("[3/4] Initializing RAG searcher...")
-    rag_searcher = RAGSearch(database_jsonl_paths='Organized', cache_path='rag_cache')
+    rag_searcher = RAGSearch(database_jsonl_paths='KnowledgeBase', cache_path='src/CACHES/KNOWLEDGE_BASE_CACHE')
     
     print("[4/4] Loading style extractor...")
     style_extractor = TextStyleExtractor()
     
-    print("\n✓ All components ready!\n")
+    print("\n[SUCCESS] All components ready!\n")
     
     # Interactive mode
     if args.interactive:

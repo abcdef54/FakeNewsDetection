@@ -14,6 +14,7 @@ import argparse
 # Project root
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
+sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -46,20 +47,20 @@ MODELS = {
     "phobert": {
         "name": "vinai/phobert-base-v2",
         "max_len": 256,           # max_position_embeddings=258
-        "save": "checkpoints/phobert_best.pth",
-        "curves_png": "checkpoints/phobert_training_curves.png",
-        "cm_png": "checkpoints/phobert_confusion_matrix.png",
+        "save": "src/checkpoints/phobert_best.pth",
+        "curves_png": "src/checkpoints/phobert_training_curves.png",
+        "cm_png": "src/checkpoints/phobert_confusion_matrix.png",
     },
     "visobert": {
         "name": "uitnlp/visobert",
         "max_len": 512,           # max_position_embeddings=514
-        "save": "checkpoints/visobert_best.pth",
-        "curves_png": "checkpoints/visobert_training_curves.png",
-        "cm_png": "checkpoints/visobert_confusion_matrix.png",
+        "save": "src/checkpoints/visobert_best.pth",
+        "curves_png": "src/checkpoints/visobert_training_curves.png",
+        "cm_png": "src/checkpoints/visobert_confusion_matrix.png",
     },
 }
 
-PICKLE_PATH = "src/cache_dataset.pkl"
+PICKLE_PATH = "src/CACHES/DATASET_CACHE/cached_ds.pkl"
 BATCH_SIZE = 16
 NUM_EPOCHS = 5
 LR = 2e-5
@@ -262,7 +263,7 @@ if __name__ == "__main__":
         print(f"GPU: {torch.cuda.get_device_name(0)}")
         print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
 
-    os.makedirs("checkpoints", exist_ok=True)
+    os.makedirs("src/checkpoints", exist_ok=True)
 
     results = {}
     if args.target in ("phobert", "all"):

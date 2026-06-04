@@ -4,7 +4,11 @@ Processes all Organized/ samples → RAG evidence + style + tokenization → pic
 """
 import os, sys
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+# Set project root and src directory in sys.path
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, 'src'))
 
 import json
 import pandas as pd
@@ -12,14 +16,16 @@ from pathlib import Path
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
-from features import TextStyleExtractor
-from rag_utils import RAGSearch
-from preprocessing import clean_text
+from src.features import TextStyleExtractor
+from src.rag_utils import RAGSearch
+from src.preprocessing import clean_text
+
 
 # ── Config ──────────────────────────────────────────────
-DATA_DIR      = os.path.join(os.path.dirname(__file__), '..', 'Organized')
-RAG_CACHE     = os.path.join(os.path.dirname(__file__), '..', 'rag_cache')
-CACHE_FILE    = os.path.join(os.path.dirname(__file__), '..', 'src', 'cache_dataset.pkl')
+CORPUS_DIR    = os.path.join(os.path.dirname(__file__), '..', 'Organized')
+KB_DIR        = os.path.join(os.path.dirname(__file__), '..', 'KnowledgeBase')
+RAG_CACHE     = os.path.join(os.path.dirname(__file__), '..', 'src', 'CACHES', 'KNOWLEDGE_BASE_CACHE')
+CACHE_FILE    = os.path.join(os.path.dirname(__file__), '..', 'src', 'CACHES', 'DATASET_CACHE', 'cached_ds.pkl')
 MAX_LEN       = 256
 TOKENIZER_NAME = "vinai/phobert-base-v2"
 BATCH_SIZE     = 64  # tokenizer batch size
@@ -44,7 +50,7 @@ if __name__ == "__main__":
 
     # 1. Init RAG (loads from KB cache – 35K docs)
     print("\n[1/4] Loading RAG from KB cache...")
-    rag = RAGSearch(database_jsonl_paths=DATA_DIR, cache_path=RAG_CACHE)
+    rag = RAGSearch(database_jsonl_paths=KB_DIR, cache_path=RAG_CACHE)
     print(f"  RAG documents: {len(rag.documents)}")
 
     # 2. Init Style + Tokenizer
@@ -53,8 +59,8 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_NAME, use_fast=True)
 
     # 3. Load corpus
-    corpus = read_organized(DATA_DIR)
-    print(f"[3/4] Loaded {len(corpus)} samples from {DATA_DIR}")
+    corpus = read_organized(CORPUS_DIR)
+    print(f"[3/4] Loaded {len(corpus)} samples from {CORPUS_DIR}")
 
     # 4. Process
     print(f"[4/4] Processing samples (batch_size={BATCH_SIZE})...")
