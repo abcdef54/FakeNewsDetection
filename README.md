@@ -30,7 +30,7 @@ This project leverages a modern Python-based AI/NLP ecosystem to build, train, a
 | **Explainable AI** | **Captum** | Implements Integrated Gradients (Layer Attribution) to map neural decisions back to individual input tokens and style features. |
 | **Data & Utilities** | **Pandas**, **NumPy**, **Scikit-learn** | Structured data ingestion, vector operations, training-test splits, and validation metrics (Accuracy, F1-Score, Confusion Matrices). |
 | **Visualization** | **Matplotlib** & **Seaborn** | Renders training/validation loss curves, accuracy curves, and confusion matrix heatmaps. |
-| **Data Collection** | **BeautifulSoup4**, **Requests**, **Lxml** | Multithreaded scraping pipelines for web data collection and corpus ingestion. |
+| **Data Collection** | **BeautifulSoup4**, **Requests** | Multithreaded scraping pipelines for web data collection and corpus ingestion. |
 | **DevOps & Execution** | **Docker** & **Shell/Batch Scripts** | Unified execution environments featuring automatic volume mounts, GPU acceleration fallback, and interactive shell wrappers. |
 
 ---
