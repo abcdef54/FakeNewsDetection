@@ -1,0 +1,73 @@
+(.fakenews) PS D:\Work\Code\GithubProjects\FakeNewsDetection> python .\scripts\train_model.py visobert
+Device: cuda
+GPU: NVIDIA GeForce RTX 4050 Laptop GPU
+VRAM: 6.4 GB
+
+======================================================================
+  TRAINING VISOBERT  —  uitnlp/visobert  (max_len=512)
+======================================================================
+  TRAINING VISOBERT  —  uitnlp/visobert  (max_len=512)
+======================================================================
+  Train: 4742 | Val: 837
+pytorch_model.bin: 100%|████████████████████████████████████████████████████████████████| 390M/390M [00:28<00:00, 13.7MB/s]
+D:\Work\Code\GithubProjects\FakeNewsDetection\.fakenews\Lib\site-packages\huggingface_hub\file_download.py:130: UserWarning: `huggingface_hub` cache-system uses symlinks by default to efficiently store duplicated files but your machine does not support them in C:\Users\Admin\.cache\huggingface\hub\models--uitnlp--visobert. Caching files will still work but in a degraded version that might require more space on your disk. This warning can be disabled by setting the `HF_HUB_DISABLE_SYMLINKS_WARNING` environment variable. For more details, see https://huggingface.co/docs/huggingface_hub/how-to-cache#limitations.
+To support symlinks on Windows, you either need to activate Developer Mode or to run Python as an administrator. In order to activate developer mode, see this article: https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+  warnings.warn(message)
+Loading weights: 100%|████████| 197/197 [00:00<00:00, 695.62it/s, Materializing param=encoder.layer.11.output.dense.weight]
+[INFO] HybridModel initialized with uitnlp/visobert
+[INFO] Fusion dimension: 768 (BERT) + 10 (Style) = 778
+model.safetensors:   0%|                                                                        | 0.00/390M [00:00<?, ?B/s]D:\Work\Code\GithubProjects\FakeNewsDetection\scripts\train_model.py:215: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler() if DEVICE.type == "cuda" else None
+
+  Epoch 1/5
+model.safetensors:   0%|                                                                        | 0.00/390M [00:01<?, ?B/s]D:\Work\Code\GithubProjects\FakeNewsDetection\scripts\train_model.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+model.safetensors: 100%|████████████████████████████████████████████████████████████████| 390M/390M [00:28<00:00, 13.6MB/s]
+  Train: 100%|███████████████████████████████████████████████████████████████████████████| 297/297 [02:20<00:00,  2.11it/s]
+  Loss: 0.5854 | Acc: 0.6984█████████████████████████████████████████████████████████████| 297/297 [02:20<00:00,  2.43it/s]
+
+  Epoch 2/5
+  Train:   0%|                                                                                                | 0/297 [00:00<?, ?it/s]D:\Work\Code\GithubProjects\FakeNewsDetection\scripts\train_model.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+  Train: 100%|██████████████████████████████████████████████████████████████████████████████████████| 297/297 [02:22<00:00,  2.08it/s]
+  Loss: 0.3923 | Acc: 0.8427
+
+  Epoch 3/5
+  Train:   0%|                                                                                                | 0/297 [00:00<?, ?it/s]D:\Work\Code\GithubProjects\FakeNewsDetection\scripts\train_model.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+  Train: 100%|██████████████████████████████████████████████████████████████████████████████████████| 297/297 [02:25<00:00,  2.04it/s]
+  Loss: 0.2749 | Acc: 0.9062
+
+  Epoch 4/5
+  Train:   0%|                                                                                                | 0/297 [00:00<?, ?it/s]D:\Work\Code\GithubProjects\FakeNewsDetection\scripts\train_model.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+  Train: 100%|██████████████████████████████████████████████████████████████████████████████████████| 297/297 [02:23<00:00,  2.08it/s]
+  Loss: 0.2118 | Acc: 0.9323
+
+  Epoch 5/5
+  Train:   0%|                                                                                                | 0/297 [00:00<?, ?it/s]D:\Work\Code\GithubProjects\FakeNewsDetection\scripts\train_model.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+  Train: 100%|██████████████████████████████████████████████████████████████████████████████████████| 297/297 [02:22<00:00,  2.08it/s]
+  Loss: 0.1745 | Acc: 0.9515
+
+  Validating...
+  Val  : 100%|████████████████████████████████████████████████████████████████████████████████████████| 53/53 [00:18<00:00,  2.92it/s] 
+  Val Loss: 0.2962 | Acc: 0.9164 | F1: 0.9164
+  Precision: 0.9164 | Recall: 0.9164
+              precision    recall  f1-score   support
+
+        Fake       0.90      0.91      0.91       374
+        Real       0.93      0.92      0.92       463
+
+    accuracy                           0.92       837
+   macro avg       0.92      0.92      0.92       837
+weighted avg       0.92      0.92      0.92       837
+
+  Model saved → src/checkpoints/visobert_best.pth
+  Plots saved → src/checkpoints/visobert_training_curves.png, src/checkpoints/visobert_confusion_matrix.png
+
+======================================================================
+  TRAINING COMPLETE — SUMMARY
+======================================================================
+    VISOBERT: Acc = 0.9164  |  F1 = 0.9164
+======================================================================
