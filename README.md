@@ -188,18 +188,18 @@ The 10 dimensions of the handcrafted style vector are defined below:
 #### 4. Lexical Diversity Score (`lexical_diversity`)
 * **Rationale**: Repetitive phrasing or simple, redundant vocabulary is often characteristic of spam, low-effort sensationalism, or emotionally driven narratives. High lexical diversity indicates a wider, more structured vocabulary.
 * **Calculation**: Formulated as the ratio of unique tokens to total tokens, scaled logarithmically to minimize sequence-length bias:
-  $$S_{\text{lex\_div}} = \frac{\ln(1 + U_{\text{words}})}{\ln(1 + N_{\text{words}})}$$
+  $$S_{\text{lex-div}} = \frac{\ln(1 + U_{\text{words}})}{\ln(1 + N_{\text{words}})}$$
   where $U_{\text{words}}$ is the count of unique words.
 
 #### 5. Word Rarity / Mean Inverse Document Frequency (`mean_idf`)
 * **Rationale**: Genuine articles discussing specific news events utilize specialized, informative keywords (e.g., proper nouns, technical terms) that have high IDF scores. Misinformation often relies on generic, broad vocabulary with low IDF scores.
 * **Calculation**: For all tokenized terms in the query text that exist in the RAG corpus vocabulary, the system extracts their IDF values, computes the average, and scales it by the maximum IDF in the corpus:
-  $$S_{\text{mean\_idf}} = \text{clip}\left(\frac{\frac{1}{|T|} \sum_{t \in T} \text{IDF}(t)}{\text{IDF}_{\text{max}}}, 0, 1\right)$$
+  $$S_{\text{mean-idf}} = \text{clip}\left(\frac{\frac{1}{|T|} \sum_{t \in T} \text{IDF}(t)}{\text{IDF}_{\text{max}}}, 0, 1\right)$$
 
 #### 6. Capitalization Ratio (`caps_ratio`)
 * **Rationale**: Excessive capitalization (e.g., writing entire words or sentences in uppercase) acts as a visual shouting mechanism, which is prevalent in sensational headlines and clickbait social posts.
 * **Calculation**: The ratio of uppercase alphabetic characters to total alphabetic characters in the original text:
-  $$S_{\text{caps}} = \frac{N_{\text{upper\_chars}}}{N_{\text{total\_chars}}}$$
+  $$S_{\text{caps}} = \frac{N_{\text{upper}}}{N_{\text{total}}}$$
 
 #### 7. Sensational Punctuation Ratio (`punctuation_ratio`)
 * **Rationale**: Exclamation points (`!`) and question marks (`?`) are frequently stacked in clickbait text to manufacture urgency or doubt. Official news releases avoid these markers.
@@ -230,7 +230,7 @@ The 10 dimensions of the handcrafted style vector are defined below:
 ### Summary of Feature Significance
 
 The resulting 10-dimensional vector:
-$$\mathbf{v}_{\text{style}} = \begin{bmatrix} S_{\text{emotion}} & S_{\text{subj}} & S_{\text{length}} & S_{\text{lex\_div}} & S_{\text{mean\_idf}} & S_{\text{caps}} & S_{\text{punct}} & S_{\text{pronouns}} & S_{\text{slang}} & S_{\text{bm25}} \end{bmatrix}^T$$
+$$\mathbf{v}_{\text{style}} = \begin{bmatrix} S_{\text{emotion}} & S_{\text{subj}} & S_{\text{length}} & S_{\text{lex-div}} & S_{\text{mean-idf}} & S_{\text{caps}} & S_{\text{punct}} & S_{\text{pronouns}} & S_{\text{slang}} & S_{\text{bm25}} \end{bmatrix}^T$$
 provides a domain-agnostic linguistic footprint. Combined with the semantic vector, it aids the downstream classifier in distinguishing between formal journalism, unverified rumors, and emotional clickbait.
 
 
