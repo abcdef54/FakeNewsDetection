@@ -7,9 +7,9 @@ from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
-from features import TextStyleExtractor
-from rag_utils import RAGSearch
-from preprocessing import clean_text
+from .features import TextStyleExtractor
+from .rag_utils import RAGSearch
+from .preprocessing import clean_text
 
 # ==================================================
 # Globals inside worker

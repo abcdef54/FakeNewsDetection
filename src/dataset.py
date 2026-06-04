@@ -1,10 +1,10 @@
 import torch
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
-import preprocessing
-from features import TextStyleExtractor
-from augmentations import TextAugmentations
-from rag_utils import RAGSearch
+from . import preprocessing
+from .features import TextStyleExtractor
+from .augmentations import TextAugmentations
+from .rag_utils import RAGSearch
 from typing import List, Dict
 from pathlib import Path
 import json

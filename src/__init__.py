@@ -1,9 +1,9 @@
-from src import model as model
-from src import dataset as dataset
-from src import features as features
-from src import xai_utils as xai
-from src import rag_utils as rag
-from src import preprocessing as preprocessing
+from . import model as model
+from . import dataset as dataset
+from . import features as features
+from . import xai_utils as xai
+from . import rag_utils as rag
+from . import preprocessing as preprocessing
 
 __all__ = [
     "model",

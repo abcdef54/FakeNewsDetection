@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 # Add src to path
 sys.path.insert(0, os.path.join(os.getcwd(), 'src'))
 
-from dataset import FakeNewsDetectionDatasetCached
-from model import HybridModel
+from .dataset import FakeNewsDetectionDatasetCached
+from .model import HybridModel
 from transformers import AutoTokenizer
 
 # Fix OpenMP duplicate library issue
