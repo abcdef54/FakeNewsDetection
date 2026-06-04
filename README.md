@@ -230,7 +230,9 @@ The 10 dimensions of the handcrafted style vector are defined below:
 ### Summary of Feature Significance
 
 The resulting 10-dimensional vector:
-$$\mathbf{v}_{\text{style}} = \begin{bmatrix} S_{\text{emotion}} & S_{\text{subj}} & S_{\text{length}} & S_{\text{lex-div}} & S_{\text{mean-idf}} & S_{\text{caps}} & S_{\text{punct}} & S_{\text{pronouns}} & S_{\text{slang}} & S_{\text{bm25}} \end{bmatrix}^T$$
+```math
+\mathbf{v}_{\text{style}} = \begin{bmatrix} S_{\text{emotion}} & S_{\text{subj}} & S_{\text{length}} & S_{\text{lex-div}} & S_{\text{mean-idf}} & S_{\text{caps}} & S_{\text{punct}} & S_{\text{pronouns}} & S_{\text{slang}} & S_{\text{bm25}} \end{bmatrix}^T
+```
 provides a domain-agnostic linguistic footprint. Combined with the semantic vector, it aids the downstream classifier in distinguishing between formal journalism, unverified rumors, and emotional clickbait.
 
 
