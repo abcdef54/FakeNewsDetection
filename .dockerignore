@@ -1,0 +1,41 @@
+# Virtual Environment
+.fakenews/
+venv/
+env/
+
+# Git and IDE configs
+.git/
+.gitignore
+.vscode/
+.idea/
+.project
+.pydevproject
+.settings/
+
+# Jupyter Notebooks & checkpoints
+.ipynb_checkpoints/
+src/inference/inference.ipynb
+
+# Python compilation and cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Large Model Checkpoints
+src/checkpoints/*.pth
+src/checkpoints/*.pt
+src/checkpoints/*.bin
+
+# Large Data & Index Caches
+src/CACHES/**/*.pkl
+src/CACHES/**/*.faiss
+src/CACHES/**/*.index
+
+# Large Raw Datasets
+KnowledgeBase/KB35.jsonl
+Organized/
+DatasetCode/
+
+# Logs & temporary files
+*.log

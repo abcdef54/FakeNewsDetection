@@ -1,0 +1,33 @@
+# Core Machine Learning & Deep Learning
+transformers>=5.2.0
+sentence-transformers>=5.2.3
+faiss-cpu>=1.13.2
+sentencepiece>=0.2.1
+tiktoken>=0.13.0
+protobuf>=7.35.0
+
+
+# Data Processing & Utilities
+pandas>=2.3.3
+numpy>=1.26.4
+scikit-learn>=1.7.2
+tqdm>=4.67.3
+joblib>=1.3.0
+tqdm_joblib>=0.0.5
+
+# Vietnamese NLP
+underthesea>=9.2.11
+
+# Information Retrieval (RAG)
+rank-bm25>=0.2.2
+
+captum>=0.8.0
+
+# Visualization
+matplotlib>=3.10.8
+seaborn>=0.13.2
+
+# Web Scrapping (Optional / Data collection)
+beautifulsoup4>=4.14.3
+requests>=2.32.5
+lxml>=6.0.2
